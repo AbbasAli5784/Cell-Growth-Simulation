@@ -102,10 +102,6 @@ const Grid: React.FC = () => {
 
   return (
     <div style={{ textAlign: "center" }}>
-      {/* Button to toggle simulation state */}
-      <button onClick={() => setIsRunning(!isRunning)}>
-        {isRunning ? "Pause" : "Start"}
-      </button>
       {/* Render the grid using CSS grid layout */}
       <div
         style={{
@@ -121,6 +117,17 @@ const Grid: React.FC = () => {
           />
         ))}
       </div>
+      {/* Button to toggle simulation state */}
+      <button className="pause-button" onClick={() => setIsRunning(!isRunning)}>
+        {isRunning ? "Pause" : "Start"}
+      </button>
+      {/*Reset grid*/}
+      <button
+        className="reset-button"
+        onClick={() => setGrid(createEmptyGrid())}
+      >
+        Reset
+      </button>
     </div>
   );
 };
