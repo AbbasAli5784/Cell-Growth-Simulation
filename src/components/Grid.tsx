@@ -2,8 +2,13 @@ import React, { useEffect, useState } from "react";
 import Cell from "./Cell";
 import { MutationType, CellData } from "../types/types";
 
+// Define the size of the grid (200x200 cells)
 const size = 200;
 
+/**
+ * Creates an empty grid with default cell properties.
+ * Each cell starts without bacteria, no mutation, and a default lifespan.
+ */
 const createEmptyGrid = (): CellData[][] => {
   //Outer Array
   return Array.from({ length: size }, () =>
@@ -18,72 +23,90 @@ const createEmptyGrid = (): CellData[][] => {
 };
 
 const Grid: React.FC = () => {
+  // State to hold the grid data
   const [grid, setGrid] = useState<CellData[][]>(createEmptyGrid());
+  // State to control whether the simulation is running or paused
   const [isRunning, setIsRunning] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setGrid((prevGrid) => {
-        const newGrid = prevGrid.map((row) => row.slice());
+    // Effect to handle the simulation logic (start/pause)
+    if (isRunning) {
+      // Set up an interval to update the grid every second
+      const interval = setInterval(() => {
+        console.time("Grid Update"); // Measure grid update performance
 
-        for (let i = 0; i < size; i++) {
-          for (let j = 0; j < size; j++) {
-            const cell = newGrid[i][j];
+        setGrid((prevGrid) => {
+          // Deep copy the previous grid to avoid mutating state directly
+          const newGrid = JSON.parse(JSON.stringify(prevGrid));
 
-            if (!cell.hasBacteria && canSpawn(newGrid, i, j)) {
-              if (Math.random() < 0.0001) {
-                // low prob per tick
-                const mutation: MutationType =
-                  Math.random() < 0.05
-                    ? (["fast", "immortal", "double_life"][
-                        Math.floor(Math.random() * 3)
-                      ] as MutationType)
-                    : null;
+          // Iterate through each cell in the grid
+          for (let i = 0; i < size; i++) {
+            for (let j = 0; j < size; j++) {
+              const cell = newGrid[i][j];
 
-                const lifespan =
-                  mutation === "double_life"
-                    ? 12000
-                    : mutation === "immortal"
-                    ? Infinity
-                    : 6000;
+              // Check if bacteria can spawn in the current cell
+              if (!cell.hasBacteria && canSpawn(newGrid, i, j)) {
+                if (Math.random() < 0.0001) {
+                  // Randomly assign a mutation type (5% chance for mutation)
+                  const mutation: MutationType =
+                    Math.random() < 0.05
+                      ? (["fast", "immortal", "double_life"][
+                          Math.floor(Math.random() * 3)
+                        ] as MutationType)
+                      : null;
 
+                  // Adjust lifespan based on mutation type
+                  const lifespan =
+                    mutation === "double_life"
+                      ? 12000
+                      : mutation === "immortal"
+                      ? Infinity
+                      : 6000;
+
+                  // Update the cell with bacteria properties
+                  newGrid[i][j] = {
+                    hasBacteria: true,
+                    mutationType: mutation,
+                    birthTime: Date.now(),
+                    lifespan,
+                  };
+                }
+              }
+
+              // Handle bacteria death based on lifespan and mutation type
+              if (
+                cell.hasBacteria &&
+                cell.mutationType !== "immortal" &&
+                Date.now() - cell.birthTime >= cell.lifespan
+              ) {
+                // Reset the cell to its default state
                 newGrid[i][j] = {
-                  hasBacteria: true,
-                  mutationType: mutation,
-                  birthTime: Date.now(),
-                  lifespan,
+                  hasBacteria: false,
+                  mutationType: null,
+                  birthTime: 0,
+                  lifespan: 6000,
                 };
               }
             }
-
-            // Handle death
-            if (
-              cell.hasBacteria &&
-              cell.mutationType !== "immortal" &&
-              Date.now() - cell.birthTime >= cell.lifespan
-            ) {
-              newGrid[i][j] = {
-                hasBacteria: false,
-                mutationType: null,
-                birthTime: 0,
-                lifespan: 6000,
-              };
-            }
           }
-        }
 
-        return newGrid;
-      });
-    }, 1000);
+          return newGrid; // Return the updated grid
+        });
+        console.timeEnd("Grid Update"); // End performance measurement
+      }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+      // Cleanup the interval when the component unmounts or isRunning changes
+      return () => clearInterval(interval);
+    }
+  }, [isRunning]);
 
   return (
     <div style={{ textAlign: "center" }}>
+      {/* Button to toggle simulation state */}
       <button onClick={() => setIsRunning(!isRunning)}>
         {isRunning ? "Pause" : "Start"}
       </button>
+      {/* Render the grid using CSS grid layout */}
       <div
         style={{
           display: "grid",
@@ -115,11 +138,12 @@ const canSpawn = (grid: CellData[][], x: number, y: number): boolean => {
     const newX = x + dx;
     const newY = y + dy;
 
+    // Ensure the adjacent cell is within bounds and does not have bacteria
     if (newX >= 0 && newX < size && newY >= 0 && newY < size) {
       return !grid[newX][newY].hasBacteria;
     }
 
-    return true;
+    return true; // Out-of-bounds cells are treated as empty
   });
 };
 
