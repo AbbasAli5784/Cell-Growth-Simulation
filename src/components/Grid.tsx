@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Cell from "./Cell";
 import { MutationType, CellData } from "../types/types";
 
@@ -9,7 +9,7 @@ const size = 200;
  * Creates an empty grid with default cell properties.
  * Each cell starts without bacteria, no mutation, and a default lifespan.
  */
-const createEmptyGrid = (): CellData[][] => {
+const createEmptyGrid = (lifespan: number): CellData[][] => {
   //Outer Array
   return Array.from({ length: size }, () =>
     //Inner Array
@@ -17,27 +17,49 @@ const createEmptyGrid = (): CellData[][] => {
       hasBacteria: false,
       mutationType: null,
       birthTime: 0,
-      lifespan: 6000,
+      lifespan,
     }))
   );
 };
 
 const Grid: React.FC = () => {
   // State to hold the grid data
-  const [grid, setGrid] = useState<CellData[][]>(createEmptyGrid());
+
   // State to control whether the simulation is running or paused
   const [isRunning, setIsRunning] = useState(true);
+  const [spanOfLife, setspanOfLife] = useState<number>(6000);
+  const [grid, setGrid] = useState<CellData[][]>(createEmptyGrid(spanOfLife));
+  const [inputValue, setInputValue] = useState<string>("6000");
+  const MAX_LIFESPAN = 100000;
+  const spanOfLifeRef = useRef(spanOfLife);
+
+  // Update the lifespan of cells in the existing grid
+  useEffect(() => {
+    spanOfLifeRef.current = spanOfLife;
+    setGrid((prevGrid) =>
+      prevGrid.map((row) =>
+        row.map((cell) => ({
+          ...cell,
+          lifespan:
+            cell.mutationType === "double_life" ? spanOfLife * 2 : spanOfLife,
+        }))
+      )
+    );
+    console.log("SPAN OF LIFE UPDATED:", spanOfLife);
+  }, [spanOfLife]);
 
   useEffect(() => {
     // Effect to handle the simulation logic (start/pause)
     if (isRunning) {
       // Set up an interval to update the grid every second
       const interval = setInterval(() => {
-        console.time("Grid Update"); // Measure grid update performance
+        // console.time("Grid Update"); // Measure grid update performance
 
         setGrid((prevGrid) => {
-          // Deep copy the previous grid to avoid mutating state directly
-          const newGrid = JSON.parse(JSON.stringify(prevGrid));
+          // shallow copy the previous grid
+          const newGrid = prevGrid.map((row) =>
+            row.map((cell) => ({ ...cell }))
+          );
 
           // Iterate through each cell in the grid
           for (let i = 0; i < size; i++) {
@@ -56,19 +78,22 @@ const Grid: React.FC = () => {
                       : null;
 
                   // Adjust lifespan based on mutation type
-                  const lifespan =
-                    mutation === "double_life"
-                      ? 12000
-                      : mutation === "immortal"
-                      ? Infinity
-                      : 6000;
+                  //   const lifespan =
+                  //     mutation === "double_life"
+                  //       ? spanOfLifeRef.current * 2
+                  //       : mutation === "immortal"
+                  //       ? Infinity
+                  //       : spanOfLifeRef.current;
+
+                  //   console.log("Life span:", lifespan);
 
                   // Update the cell with bacteria properties
+                  console.log("Current lifespan:", cell.lifespan);
                   newGrid[i][j] = {
                     hasBacteria: true,
                     mutationType: mutation,
                     birthTime: Date.now(),
-                    lifespan,
+                    lifespan: cell.lifespan,
                   };
                 }
               }
@@ -84,7 +109,7 @@ const Grid: React.FC = () => {
                   hasBacteria: false,
                   mutationType: null,
                   birthTime: 0,
-                  lifespan: 6000,
+                  lifespan: spanOfLifeRef.current,
                 };
               }
             }
@@ -92,7 +117,7 @@ const Grid: React.FC = () => {
 
           return newGrid; // Return the updated grid
         });
-        console.timeEnd("Grid Update"); // End performance measurement
+        // console.timeEnd("Grid Update"); // End performance measurement
       }, 1000);
 
       // Cleanup the interval when the component unmounts or isRunning changes
@@ -124,10 +149,37 @@ const Grid: React.FC = () => {
       {/*Reset grid*/}
       <button
         className="reset-button"
-        onClick={() => setGrid(createEmptyGrid())}
+        onClick={() => setGrid(createEmptyGrid(spanOfLife))}
       >
         Reset
       </button>
+
+      <div className="lifespan-input-container">
+        <label htmlFor="lifespan-input">Set LifeSpan:</label>
+        <input
+          id="lifespan-input"
+          value={inputValue}
+          onChange={(e) => {
+            const inputValue = e.target.value;
+            setInputValue(inputValue); // Update temporary input state
+          }}
+        />
+
+        <button
+          onClick={() => {
+            const parsedValue = parseInt(inputValue, 10);
+            if (parsedValue > 0 && parsedValue <= MAX_LIFESPAN) {
+              setspanOfLife(parsedValue);
+            } else {
+              alert(
+                `Lifespan must be between 1 and ${MAX_LIFESPAN} milliseconds`
+              );
+            }
+          }}
+        >
+          Submit
+        </button>
+      </div>
     </div>
   );
 };

@@ -16,4 +16,5 @@ const Cell: React.FC<CellProps> = ({ hasBacteria, mutationType }) => {
   return <div className={className} />;
 };
 
-export default Cell;
+//Only re-render cells that have changed
+export default React.memo(Cell);
