@@ -30,8 +30,16 @@ const Grid: React.FC = () => {
   const [spanOfLife, setspanOfLife] = useState<number>(6000);
   const [grid, setGrid] = useState<CellData[][]>(createEmptyGrid(spanOfLife));
   const [inputValue, setInputValue] = useState<string>("6000");
+  const [mutationInput, setMutationInput] = useState<string>("5");
+  const [mutationProb, setMutationProb] = useState<number>(0.05);
   const MAX_LIFESPAN = 100000;
   const spanOfLifeRef = useRef(spanOfLife);
+  const mutationProbRef = useRef(mutationProb);
+
+  //Update mutation probablity
+  useEffect(() => {
+    mutationProbRef.current = mutationProb;
+  }, [mutationProb]);
 
   // Update the lifespan of cells in the existing grid
   useEffect(() => {
@@ -45,7 +53,6 @@ const Grid: React.FC = () => {
         }))
       )
     );
-    console.log("SPAN OF LIFE UPDATED:", spanOfLife);
   }, [spanOfLife]);
 
   useEffect(() => {
@@ -71,12 +78,13 @@ const Grid: React.FC = () => {
                 if (Math.random() < 0.0001) {
                   // Randomly assign a mutation type (5% chance for mutation)
                   const mutation: MutationType =
-                    Math.random() < 0.05
+                    Math.random() < mutationProbRef.current
                       ? (["fast", "immortal", "double_life"][
                           Math.floor(Math.random() * 3)
                         ] as MutationType)
                       : null;
 
+                  console.log("MUTATION PROBABLITY:", mutationProbRef.current);
                   // Adjust lifespan based on mutation type
                   //   const lifespan =
                   //     mutation === "double_life"
@@ -88,7 +96,7 @@ const Grid: React.FC = () => {
                   //   console.log("Life span:", lifespan);
 
                   // Update the cell with bacteria properties
-                  console.log("Current lifespan:", cell.lifespan);
+
                   newGrid[i][j] = {
                     hasBacteria: true,
                     mutationType: mutation,
@@ -174,6 +182,33 @@ const Grid: React.FC = () => {
               alert(
                 `Lifespan must be between 1 and ${MAX_LIFESPAN} milliseconds`
               );
+            }
+          }}
+        >
+          Submit
+        </button>
+      </div>
+      {/* Logic for setting mutation probablity*/}
+      <div className="lifespan-input-container">
+        <label htmlFor="lifespan-input">Set Mutation %:</label>
+        <input
+          id="lifespan-input"
+          value={mutationInput}
+          onChange={(e) => {
+            setMutationInput(e.target.value); // Update temporary input state
+          }}
+        />
+
+        <button
+          onClick={() => {
+            const parsedValue = parseInt(mutationInput, 10);
+            const finalProb = parsedValue / 100;
+            console.log("FINAL PROB:", finalProb);
+
+            if (finalProb > 0 && finalProb < 1) {
+              setMutationProb(finalProb);
+            } else {
+              alert("Probablity cannot be greater than 100 or less than 1");
             }
           }}
         >
