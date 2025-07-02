@@ -32,9 +32,17 @@ const Grid: React.FC = () => {
   const [inputValue, setInputValue] = useState<string>("6000");
   const [mutationInput, setMutationInput] = useState<string>("5");
   const [mutationProb, setMutationProb] = useState<number>(0.05);
+  const [intervalInput, setIntervalInput] = useState("1000");
+  const [divisionInterval, setDivisionInterval] = useState<number>(1000);
   const MAX_LIFESPAN = 100000;
   const spanOfLifeRef = useRef(spanOfLife);
   const mutationProbRef = useRef(mutationProb);
+  const divisionIntervalRef = useRef(divisionInterval);
+
+  //Update division interval
+  useEffect(() => {
+    divisionIntervalRef.current = divisionInterval;
+  }, [divisionInterval]);
 
   //Update mutation probablity
   useEffect(() => {
@@ -126,12 +134,12 @@ const Grid: React.FC = () => {
           return newGrid; // Return the updated grid
         });
         // console.timeEnd("Grid Update"); // End performance measurement
-      }, 1000);
+      }, divisionInterval);
 
       // Cleanup the interval when the component unmounts or isRunning changes
       return () => clearInterval(interval);
     }
-  }, [isRunning]);
+  }, [isRunning, divisionInterval]);
 
   return (
     <div style={{ textAlign: "center" }}>
@@ -209,6 +217,27 @@ const Grid: React.FC = () => {
               setMutationProb(finalProb);
             } else {
               alert("Probablity cannot be greater than 100 or less than 1");
+            }
+          }}
+        >
+          Submit
+        </button>
+      </div>
+
+      <div className="lifespan-input-container">
+        <label htmlFor="interval-input">Set Division Interval (ms):</label>
+        <input
+          id="interval-input"
+          value={intervalInput}
+          onChange={(e) => setIntervalInput(e.target.value)}
+        />
+        <button
+          onClick={() => {
+            const parsed = parseInt(intervalInput, 10);
+            if (parsed > 0 && parsed < 10000) {
+              setDivisionInterval(parsed);
+            } else {
+              alert("Please enter a value between 1 and 10000 milliseconds.");
             }
           }}
         >
