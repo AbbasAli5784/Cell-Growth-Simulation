@@ -2,7 +2,7 @@ import React from "react";
 import "./Cell.css";
 import { MutationType, CellData, CellProps } from "../types/types";
 
-const Cell: React.FC<CellProps> = ({ hasBacteria, mutationType }) => {
+const Cell: React.FC<CellProps> = ({ hasBacteria, mutationType, onClick }) => {
   let className = "cell";
 
   if (hasBacteria) {
@@ -13,7 +13,7 @@ const Cell: React.FC<CellProps> = ({ hasBacteria, mutationType }) => {
     }
   }
 
-  return <div className={className} />;
+  return <div className={className} onClick={onClick} />;
 };
 
 //Only re-render cells that have changed

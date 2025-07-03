@@ -10,4 +10,5 @@ export interface CellData {
 export interface CellProps {
   hasBacteria: boolean;
   mutationType: MutationType;
+  onClick?: () => void;
 }

@@ -150,13 +150,36 @@ const Grid: React.FC = () => {
           gridTemplateColumns: `repeat(${size}, 3px)`,
         }}
       >
-        {grid.flat().map((cell, idx) => (
-          <Cell
-            key={idx}
-            hasBacteria={cell.hasBacteria}
-            mutationType={cell.mutationType}
-          />
-        ))}
+        {grid.flat().map((cell, idx) => {
+          const i = Math.floor(idx / size);
+          const j = idx % size;
+
+          return (
+            <Cell
+              key={idx}
+              hasBacteria={cell.hasBacteria}
+              mutationType={cell.mutationType}
+              onClick={() => {
+                setGrid((prevGrid) => {
+                  const newGrid = prevGrid.map((row) =>
+                    row.map((cell) => ({ ...cell }))
+                  );
+
+                  const clicked = newGrid[i][j];
+                  newGrid[i][j] = {
+                    ...clicked,
+                    hasBacteria: !clicked.hasBacteria,
+                    mutationType: null,
+                    birthTime: !clicked.hasBacteria ? Date.now() : 0,
+                    lifespan: spanOfLifeRef.current,
+                  };
+
+                  return newGrid;
+                });
+              }}
+            />
+          );
+        })}
       </div>
       {/* Button to toggle simulation state */}
       <button className="pause-button" onClick={() => setIsRunning(!isRunning)}>
