@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Cell from "./Cell";
 import { MutationType, CellData } from "../types/types";
+import Chart from "./Chart";
 
 // Define the size of the grid (200x200 cells)
 const size = 200;
@@ -34,6 +35,7 @@ const Grid: React.FC = () => {
   const [mutationProb, setMutationProb] = useState<number>(0.05);
   const [intervalInput, setIntervalInput] = useState("1000");
   const [divisionInterval, setDivisionInterval] = useState<number>(1000);
+  const [growthData, setGrowthData] = useState<number[]>([]);
   const MAX_LIFESPAN = 100000;
   const spanOfLifeRef = useRef(spanOfLife);
   const mutationProbRef = useRef(mutationProb);
@@ -62,6 +64,12 @@ const Grid: React.FC = () => {
       )
     );
   }, [spanOfLife]);
+
+  //   const resetButton = (arg) => {
+  //     setGrid(createEmptyGrid(spanOfLife)
+  //     setGrowthData([])
+
+  //   }
 
   useEffect(() => {
     // Effect to handle the simulation logic (start/pause)
@@ -131,8 +139,15 @@ const Grid: React.FC = () => {
             }
           }
 
+          const totalBacteria = newGrid
+            .flat()
+            .filter((cell) => cell.hasBacteria).length;
+          setGrowthData((prev) => [...prev, totalBacteria]);
+
           return newGrid; // Return the updated grid
         });
+
+        // limits to last 400 points
         // console.timeEnd("Grid Update"); // End performance measurement
       }, divisionInterval);
 
@@ -142,130 +157,131 @@ const Grid: React.FC = () => {
   }, [isRunning, divisionInterval]);
 
   return (
-    <div style={{ textAlign: "center" }}>
-      {/* Render the grid using CSS grid layout */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${size}, 3px)`,
-        }}
-      >
-        {grid.flat().map((cell, idx) => {
-          const i = Math.floor(idx / size);
-          const j = idx % size;
+    <div className="app-layout">
+      {/* Grid + Pause/Reset */}
+      <div className="left-panel">
+        <div className="grid">
+          {grid.flat().map((cell, idx) => {
+            const i = Math.floor(idx / size);
+            const j = idx % size;
+            return (
+              <Cell
+                key={idx}
+                hasBacteria={cell.hasBacteria}
+                mutationType={cell.mutationType}
+                onClick={() => {
+                  setGrid((prevGrid) => {
+                    const newGrid = prevGrid.map((row) =>
+                      row.map((cell) => ({ ...cell }))
+                    );
+                    const clicked = newGrid[i][j];
+                    newGrid[i][j] = {
+                      ...clicked,
+                      hasBacteria: !clicked.hasBacteria,
+                      mutationType: null,
+                      birthTime: !clicked.hasBacteria ? Date.now() : 0,
+                      lifespan: spanOfLifeRef.current,
+                    };
+                    return newGrid;
+                  });
+                }}
+              />
+            );
+          })}
+        </div>
 
-          return (
-            <Cell
-              key={idx}
-              hasBacteria={cell.hasBacteria}
-              mutationType={cell.mutationType}
-              onClick={() => {
-                setGrid((prevGrid) => {
-                  const newGrid = prevGrid.map((row) =>
-                    row.map((cell) => ({ ...cell }))
-                  );
-
-                  const clicked = newGrid[i][j];
-                  newGrid[i][j] = {
-                    ...clicked,
-                    hasBacteria: !clicked.hasBacteria,
-                    mutationType: null,
-                    birthTime: !clicked.hasBacteria ? Date.now() : 0,
-                    lifespan: spanOfLifeRef.current,
-                  };
-
-                  return newGrid;
-                });
-              }}
-            />
-          );
-        })}
-      </div>
-      {/* Button to toggle simulation state */}
-      <button className="pause-button" onClick={() => setIsRunning(!isRunning)}>
-        {isRunning ? "Pause" : "Start"}
-      </button>
-      {/*Reset grid*/}
-      <button
-        className="reset-button"
-        onClick={() => setGrid(createEmptyGrid(spanOfLife))}
-      >
-        Reset
-      </button>
-
-      <div className="lifespan-input-container">
-        <label htmlFor="lifespan-input">Set LifeSpan:</label>
-        <input
-          id="lifespan-input"
-          value={inputValue}
-          onChange={(e) => {
-            const inputValue = e.target.value;
-            setInputValue(inputValue); // Update temporary input state
-          }}
-        />
-
-        <button
-          onClick={() => {
-            const parsedValue = parseInt(inputValue, 10);
-            if (parsedValue > 0 && parsedValue <= MAX_LIFESPAN) {
-              setspanOfLife(parsedValue);
-            } else {
-              alert(
-                `Lifespan must be between 1 and ${MAX_LIFESPAN} milliseconds`
-              );
-            }
-          }}
-        >
-          Submit
-        </button>
-      </div>
-      {/* Logic for setting mutation probablity*/}
-      <div className="lifespan-input-container">
-        <label htmlFor="lifespan-input">Set Mutation %:</label>
-        <input
-          id="lifespan-input"
-          value={mutationInput}
-          onChange={(e) => {
-            setMutationInput(e.target.value); // Update temporary input state
-          }}
-        />
-
-        <button
-          onClick={() => {
-            const parsedValue = parseInt(mutationInput, 10);
-            const finalProb = parsedValue / 100;
-            console.log("FINAL PROB:", finalProb);
-
-            if (finalProb > 0 && finalProb < 1) {
-              setMutationProb(finalProb);
-            } else {
-              alert("Probablity cannot be greater than 100 or less than 1");
-            }
-          }}
-        >
-          Submit
-        </button>
+        <div className="under-grid-buttons">
+          <button
+            className="pause-button"
+            onClick={() => setIsRunning(!isRunning)}
+          >
+            {isRunning ? "Pause" : "Start"}
+          </button>
+          <button
+            className="reset-button"
+            onClick={() => setGrid(createEmptyGrid(spanOfLife))}
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
-      <div className="lifespan-input-container">
-        <label htmlFor="interval-input">Set Division Interval (ms):</label>
-        <input
-          id="interval-input"
-          value={intervalInput}
-          onChange={(e) => setIntervalInput(e.target.value)}
-        />
-        <button
-          onClick={() => {
-            const parsed = parseInt(intervalInput, 10);
-            if (parsed > 0 && parsed < 10000) {
-              setDivisionInterval(parsed);
-            } else {
-              alert("Please enter a value between 1 and 10000 milliseconds.");
-            }
-          }}
-        >
-          Submit
-        </button>
+      {/*  Chart + Controls BELOW */}
+      <div className="chart-panel">
+        <h3>Bacteria Growth Over Time</h3>
+        <Chart data={growthData} />
+
+        <div className="controls-panel">
+          <div className="control-group">
+            <label htmlFor="lifespan-input">Set Lifespan:</label>
+            <div className="input-row">
+              <input
+                id="lifespan-input"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+              />
+              <button
+                onClick={() => {
+                  const parsedValue = parseInt(inputValue, 10);
+                  if (parsedValue > 0 && parsedValue <= MAX_LIFESPAN) {
+                    setspanOfLife(parsedValue);
+                  } else {
+                    alert(`Lifespan must be between 1 and ${MAX_LIFESPAN} ms`);
+                  }
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+
+          <div className="control-group">
+            <label htmlFor="mutation-input">Set Mutation %:</label>
+            <div className="input-row">
+              <input
+                id="mutation-input"
+                value={mutationInput}
+                onChange={(e) => setMutationInput(e.target.value)}
+              />
+              <button
+                onClick={() => {
+                  const parsedValue = parseInt(mutationInput, 10);
+                  const finalProb = parsedValue / 100;
+                  if (finalProb > 0 && finalProb < 1) {
+                    setMutationProb(finalProb);
+                  } else {
+                    alert("Probability must be between 1 and 100");
+                  }
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+
+          <div className="control-group">
+            <label htmlFor="interval-input">Set Division Interval (ms):</label>
+            <div className="input-row">
+              <input
+                id="interval-input"
+                value={intervalInput}
+                onChange={(e) => setIntervalInput(e.target.value)}
+              />
+              <button
+                onClick={() => {
+                  const parsed = parseInt(intervalInput, 10);
+                  if (parsed > 0 && parsed < 10000) {
+                    setDivisionInterval(parsed);
+                  } else {
+                    alert("Enter between 1 and 10000 ms");
+                  }
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
