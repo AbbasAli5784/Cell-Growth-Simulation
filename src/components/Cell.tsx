@@ -1,6 +1,6 @@
 import React from "react";
 import "./Cell.css";
-import { MutationType, CellData, CellProps } from "../types/types";
+import { CellProps } from "../types/types";
 
 const Cell: React.FC<CellProps> = ({ hasBacteria, mutationType, onClick }) => {
   let className = "cell";

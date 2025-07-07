@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Cell from "./Cell";
 import { MutationType, CellData } from "../types/types";
 import Chart from "./Chart";
@@ -100,24 +100,21 @@ const Grid: React.FC = () => {
                         ] as MutationType)
                       : null;
 
-                  console.log("MUTATION PROBABLITY:", mutationProbRef.current);
-                  // Adjust lifespan based on mutation type
-                  //   const lifespan =
-                  //     mutation === "double_life"
-                  //       ? spanOfLifeRef.current * 2
-                  //       : mutation === "immortal"
-                  //       ? Infinity
-                  //       : spanOfLifeRef.current;
-
-                  //   console.log("Life span:", lifespan);
-
                   // Update the cell with bacteria properties
+
+                  const baseLifespan = spanOfLifeRef.current;
+
+                  let lifespan = baseLifespan;
+                  if (mutation === "fast") lifespan = baseLifespan / 2;
+                  else if (mutation === "double_life")
+                    lifespan = baseLifespan * 2;
+                  else if (mutation === "immortal") lifespan = Infinity;
 
                   newGrid[i][j] = {
                     hasBacteria: true,
                     mutationType: mutation,
                     birthTime: Date.now(),
-                    lifespan: cell.lifespan,
+                    lifespan,
                   };
                 }
               }
@@ -156,12 +153,38 @@ const Grid: React.FC = () => {
     }
   }, [isRunning, divisionInterval]);
 
+  const handleCellClick = useCallback((i: number, j: number) => {
+    setGrid((prevGrid) => {
+      const newGrid = prevGrid.map((row) => row.map((cell) => ({ ...cell })));
+      const clicked = newGrid[i][j];
+      newGrid[i][j] = {
+        ...clicked,
+        hasBacteria: !clicked.hasBacteria,
+        mutationType: null,
+        birthTime: !clicked.hasBacteria ? Date.now() : 0,
+        lifespan: spanOfLifeRef.current,
+      };
+      return newGrid;
+    });
+  }, []);
+
+  // Cache to keep click handlers stable
+  const clickHandlerCache = useRef<Map<string, () => void>>(new Map());
+
+  const getCellClickHandler = (i: number, j: number): (() => void) => {
+    const key = `${i},${j}`;
+    if (!clickHandlerCache.current.has(key)) {
+      clickHandlerCache.current.set(key, () => handleCellClick(i, j));
+    }
+    return clickHandlerCache.current.get(key)!;
+  };
+
   return (
     <div className="app-layout">
       {/* Grid + Pause/Reset */}
       <div className="left-panel">
         <div className="grid">
-          {grid.flat().map((cell, idx) => {
+          {grid.flat().map((cell, idx: number) => {
             const i = Math.floor(idx / size);
             const j = idx % size;
             return (
@@ -169,22 +192,7 @@ const Grid: React.FC = () => {
                 key={idx}
                 hasBacteria={cell.hasBacteria}
                 mutationType={cell.mutationType}
-                onClick={() => {
-                  setGrid((prevGrid) => {
-                    const newGrid = prevGrid.map((row) =>
-                      row.map((cell) => ({ ...cell }))
-                    );
-                    const clicked = newGrid[i][j];
-                    newGrid[i][j] = {
-                      ...clicked,
-                      hasBacteria: !clicked.hasBacteria,
-                      mutationType: null,
-                      birthTime: !clicked.hasBacteria ? Date.now() : 0,
-                      lifespan: spanOfLifeRef.current,
-                    };
-                    return newGrid;
-                  });
-                }}
+                onClick={getCellClickHandler(i, j)}
               />
             );
           })}
@@ -199,7 +207,10 @@ const Grid: React.FC = () => {
           </button>
           <button
             className="reset-button"
-            onClick={() => setGrid(createEmptyGrid(spanOfLife))}
+            onClick={() => {
+              setGrid(createEmptyGrid(spanOfLife));
+              setGrowthData([]);
+            }}
           >
             Reset
           </button>
