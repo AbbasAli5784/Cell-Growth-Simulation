@@ -36,10 +36,50 @@ const Grid: React.FC = () => {
   const [intervalInput, setIntervalInput] = useState("1000");
   const [divisionInterval, setDivisionInterval] = useState<number>(1000);
   const [growthData, setGrowthData] = useState<number[]>([]);
+  const pauseStartRef = useRef<number | null>(null);
+  const totalPausedTimeRef = useRef(0);
   const MAX_LIFESPAN = 100000;
   const spanOfLifeRef = useRef(spanOfLife);
   const mutationProbRef = useRef(mutationProb);
   const divisionIntervalRef = useRef(divisionInterval);
+
+  const adjustBirthTimes = (delta: number) => {
+    setGrid((prevGrid) =>
+      prevGrid.map((row) =>
+        row.map((cell) => {
+          if (!cell.hasBacteria) return cell;
+          return {
+            ...cell,
+            birthTime: cell.birthTime + delta,
+          };
+        })
+      )
+    );
+  };
+
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const hasAnyBacteria = grid.some((row) =>
+      row.some((cell) => cell.hasBacteria)
+    );
+
+    if (!hasAnyBacteria) {
+      const i = Math.floor(Math.random() * size);
+      const j = Math.floor(Math.random() * size);
+
+      setGrid((prevGrid) => {
+        const newGrid = prevGrid.map((row) => row.map((cell) => ({ ...cell })));
+        newGrid[i][j] = {
+          hasBacteria: true,
+          mutationType: null,
+          birthTime: Date.now(),
+          lifespan: spanOfLifeRef.current,
+        };
+        return newGrid;
+      });
+    }
+  }, [isRunning]);
 
   //Update division interval
   useEffect(() => {
@@ -65,13 +105,12 @@ const Grid: React.FC = () => {
     );
   }, [spanOfLife]);
 
+  const baseDivisionProbability = 0.05;
+  // Effect to handle the simulation logic (start/pause)
   useEffect(() => {
-    // Effect to handle the simulation logic (start/pause)
     if (isRunning) {
       // Set up an interval to update the grid every second
       const interval = setInterval(() => {
-        // console.time("Grid Update"); // Measure grid update performance
-
         setGrid((prevGrid) => {
           // shallow copy the previous grid
           const newGrid = prevGrid.map((row) =>
@@ -83,34 +122,51 @@ const Grid: React.FC = () => {
             for (let j = 0; j < size; j++) {
               const cell = newGrid[i][j];
 
-              // Check if bacteria can spawn in the current cell
-              if (!cell.hasBacteria && canSpawn(newGrid, i, j)) {
-                if (Math.random() < 0.0001) {
-                  // Randomly assign a mutation type (5% chance for mutation)
-                  const mutation: MutationType =
-                    Math.random() < mutationProbRef.current
-                      ? (["fast", "immortal", "double_life"][
-                          Math.floor(Math.random() * 3)
-                        ] as MutationType)
-                      : null;
+              // If this cell has bacteria, attempt to divide into adjacent empty cells
+              if (cell.hasBacteria) {
+                const directions = [
+                  [0, 1],
+                  [1, 0],
+                  [-1, 0],
+                  [0, -1],
+                ];
 
-                  // Update the cell with bacteria properties
+                directions.forEach(([dx, dy]) => {
+                  const newX = i + dx;
+                  const newY = j + dy;
 
-                  const baseLifespan = spanOfLifeRef.current;
+                  if (
+                    newX >= 0 &&
+                    newX < size &&
+                    newY >= 0 &&
+                    newY < size &&
+                    !newGrid[newX][newY].hasBacteria
+                  ) {
+                    if (Math.random() < baseDivisionProbability) {
+                      // Decide whether to mutate AFTER deciding to divide
+                      const mutation: MutationType =
+                        Math.random() < mutationProbRef.current
+                          ? (["fast", "immortal", "double_life"][
+                              Math.floor(Math.random() * 3)
+                            ] as MutationType)
+                          : null;
 
-                  let lifespan = baseLifespan;
-                  if (mutation === "fast") lifespan = baseLifespan / 2;
-                  else if (mutation === "double_life")
-                    lifespan = baseLifespan * 2;
-                  else if (mutation === "immortal") lifespan = Infinity;
+                      // Set lifespan based on mutation
+                      let lifespan = spanOfLifeRef.current;
+                      if (mutation === "fast") lifespan /= 2;
+                      else if (mutation === "double_life") lifespan *= 2;
+                      else if (mutation === "immortal") lifespan = Infinity;
 
-                  newGrid[i][j] = {
-                    hasBacteria: true,
-                    mutationType: mutation,
-                    birthTime: Date.now(),
-                    lifespan,
-                  };
-                }
+                      // Spawn the new bacteria
+                      newGrid[newX][newY] = {
+                        hasBacteria: true,
+                        mutationType: mutation,
+                        birthTime: Date.now(),
+                        lifespan,
+                      };
+                    }
+                  }
+                });
               }
 
               // Handle bacteria death based on lifespan and mutation type
@@ -139,7 +195,6 @@ const Grid: React.FC = () => {
         });
 
         // limits to last 400 points
-        // console.timeEnd("Grid Update"); // End performance measurement
       }, divisionInterval);
 
       // Cleanup the interval when the component unmounts or isRunning changes
@@ -195,10 +250,24 @@ const Grid: React.FC = () => {
         <div className="under-grid-buttons">
           <button
             className="pause-button"
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={() => {
+              if (isRunning) {
+                pauseStartRef.current = Date.now();
+              } else {
+                const now = Date.now();
+                if (pauseStartRef.current !== null) {
+                  const pausedDuration = now - pauseStartRef.current;
+                  totalPausedTimeRef.current += pausedDuration;
+                  adjustBirthTimes(pausedDuration);
+                }
+                pauseStartRef.current = null;
+              }
+              setIsRunning(!isRunning);
+            }}
           >
             {isRunning ? "Pause" : "Start"}
           </button>
+
           <button
             className="reset-button"
             onClick={() => {
@@ -299,28 +368,6 @@ const Grid: React.FC = () => {
       </div>
     </div>
   );
-};
-
-// Helper to check spawn eligibility
-const canSpawn = (grid: CellData[][], x: number, y: number): boolean => {
-  const directions = [
-    [0, 1],
-    [1, 0],
-    [-1, 0],
-    [0, -1],
-  ];
-
-  return directions.every(([dx, dy]) => {
-    const newX = x + dx;
-    const newY = y + dy;
-
-    // Ensure the adjacent cell is within bounds and does not have bacteria
-    if (newX >= 0 && newX < size && newY >= 0 && newY < size) {
-      return !grid[newX][newY].hasBacteria;
-    }
-
-    return true; // Out-of-bounds cells are treated as empty
-  });
 };
 
 export default Grid;
