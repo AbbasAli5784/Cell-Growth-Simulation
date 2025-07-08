@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from "react";
 
+// Chart component takes in a list of bacteria counts (one per update)
 const Chart: React.FC<{ data: number[] }> = ({ data }) => {
+  // Create a reference to the canvas element so we can draw on it
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

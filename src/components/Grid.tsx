@@ -65,12 +65,6 @@ const Grid: React.FC = () => {
     );
   }, [spanOfLife]);
 
-  //   const resetButton = (arg) => {
-  //     setGrid(createEmptyGrid(spanOfLife)
-  //     setGrowthData([])
-
-  //   }
-
   useEffect(() => {
     // Effect to handle the simulation logic (start/pause)
     if (isRunning) {
@@ -224,10 +218,13 @@ const Grid: React.FC = () => {
 
         <div className="controls-panel">
           <div className="control-group">
-            <label htmlFor="lifespan-input">Set Lifespan:</label>
+            <label htmlFor="lifespan-input">Set Lifespan(ms):</label>
             <div className="input-row">
               <input
                 id="lifespan-input"
+                type="number"
+                min="1"
+                max={MAX_LIFESPAN}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
               />
@@ -251,6 +248,9 @@ const Grid: React.FC = () => {
             <div className="input-row">
               <input
                 id="mutation-input"
+                type="number"
+                min="1"
+                max="99"
                 value={mutationInput}
                 onChange={(e) => setMutationInput(e.target.value)}
               />
@@ -275,6 +275,9 @@ const Grid: React.FC = () => {
             <div className="input-row">
               <input
                 id="interval-input"
+                type="number"
+                min="1"
+                max={MAX_LIFESPAN}
                 value={intervalInput}
                 onChange={(e) => setIntervalInput(e.target.value)}
               />
