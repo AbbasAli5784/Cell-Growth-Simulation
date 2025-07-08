@@ -1,3 +1,8 @@
+.App h1 {
+  text-align: center;
+  margin-top: 10px;
+}
+
 .cell {
   width: 3px;
   height: 3px;
@@ -11,6 +16,8 @@
 .bacteria {
   background-color: green;
 }
+
+/* Visual identifiers for different mutations */
 
 .fast {
   border: 1px solid yellow;
@@ -31,6 +38,7 @@
   min-height: 100vh;
 }
 
+/* base styling for all buttons */
 button {
   padding: 10px 20px;
   font-size: 16px;
@@ -52,32 +60,6 @@ button:hover {
 
 .reset-button {
   margin-right: 10px;
-}
-
-/* Lifespan input container */
-.lifespan-input-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px; /* Add spacing between label, input, and button */
-}
-
-.lifespan-input-container label {
-  font-size: 14px;
-  color: #333;
-}
-
-.lifespan-input-container input {
-  padding: 5px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  width: 150px;
-  text-align: center;
-}
-
-.lifespan-input-container button {
-  margin-top: 5px;
 }
 
 .app-layout {
@@ -147,4 +129,16 @@ button:hover {
   .lifespan-input-container input {
     width: 120px;
   }
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  width: 150px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
