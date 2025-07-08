@@ -42,6 +42,7 @@ const Grid: React.FC = () => {
   const spanOfLifeRef = useRef(spanOfLife);
   const mutationProbRef = useRef(mutationProb);
   const divisionIntervalRef = useRef(divisionInterval);
+  const hasSeeded = useRef(false);
 
   const adjustBirthTimes = (delta: number) => {
     setGrid((prevGrid) =>
@@ -78,8 +79,9 @@ const Grid: React.FC = () => {
         };
         return newGrid;
       });
+      hasSeeded.current = true;
     }
-  }, [isRunning]);
+  }, [isRunning, grid]);
 
   //Update division interval
   useEffect(() => {
