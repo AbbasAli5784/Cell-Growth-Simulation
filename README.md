@@ -1,46 +1,101 @@
-# Getting Started with Create React App
+# Bacteria Grid Simulation
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a React-based web app written in TypeScript that renders a 200x200 grid simulating the growth of bacteria. Bacteria follow strict rules for spawning (no bacteria may be present in adjacent cells) and can mutate based on a user-defined mutation probability. Users can also adjust the cell division interval and lifespan.
 
-## Available Scripts
+The project also features a live-updating chart that tracks the bacterial colony's growth over time as the simulation runs.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- 200x200 grid representing a Petri dish
+- Real-time growth tracking via HTML canvas chart
+- Pause/Start toggle for simulation
+- Reset button (resets both grid and chart)
+- Adjustable lifespan
+- Adjustable mutation probability
+- Adjustable cell division interval
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+---
 
-### `npm test`
+## Project Structure & Key Components
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The structure of this project is modular and organized under `src/components`. Here's an overview of the key files:
 
-### `npm run build`
+###`App.tsx`
+ -Entry point for the simulation UI.
+ -Renders the Grid and surrounding layout.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### `Grid.tsx`
+- Core logic for the simulation
+- Generates and updates the 200x200 grid
+- Uses `useState`, `useEffect`, `useRef`, and `useCallback` to manage grid state efficiently
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### `Cell.tsx`
+- Pure presentational component representing a single cell
+- Applies conditional class names based on mutation type
+- Memoized with `React.memo()` to prevent unnecessary re-renders
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### `Chart.tsx`
+- Receives population data from `Grid.tsx`
+- Renders a real-time line chart using the `<canvas>` API
 
-### `npm run eject`
+### `Cell.css`
+- Contains styling for grid cells, mutations, and UI layout
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+---
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Assumptions
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+From the beginning, I assumed this project would be very CPU-intensive due to the need to:
+- Render and update a 200x200 grid (40,000 cells)
+- Continuously simulate growth every 1 second (or faster)
+- Update state based on mutation rules and lifespan logic
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+I knew I'd need to aggressively minimize unnecessary re-renders to keep the app usable, especially since cells persist across intervals.
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Performance Analysis
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+In early versions of the app, performance degraded quickly — even cells that hadn’t changed were re-rendering on every interval. This became a serious bottleneck, especially with mutations like `"immortal"` and `"double_life"` that caused cells to stick around for long periods.
+
+### Optimizations Applied:
+
+- **React.memo**: Wrapped `<Cell />` to avoid re-rendering cells whose props hadn’t changed
+- **useCallback**: Memoized the `onClick` handler to keep the function reference stable
+- **clickHandlerCache**: Stored individual handlers per `(i,j)` coordinate using a `Map<string, () => void>`
+-  **Ref-based state access**: Used `useRef` to track current lifespan and interval values inside the simulation loop without triggering re-renders
+
+These combined efforts significantly reduced the number of component updates and improved overall grid responsiveness.
+
+---
+
+## Technologies Used
+
+- React
+- TypeScript
+- Node.js
+- Netlify (deployment)
+- GitHub
+
+---
+
+## Future Improvements
+
+- Add a mutation dropdown when manually placing bacteria
+- Add zoom functionality when hovering over the Petri dish
+- Allow grid resizing to manage performance on lower-end systems
+- Use a charting library like Recharts for a more flexible growth chart
+
+---
+
+## Author
+
+**Abbas Ali**  
+
+---
+
+## Live Demo
+
+🔗:[https://jitto-assesment.netlify.app/]
